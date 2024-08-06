@@ -1,1 +1,157 @@
-ZJKSOSD
+#import important libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns 
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+
+#LOAD DATA
+df = pd.read_csv(r'C:\Users\lenovo\Desktop\Chemistry\wine.csv')
+
+X = df.drop('Wine', axis=1)
+y = df['Wine']
+
+#DATA EXPLORATION
+#Exploring the data set 
+#Finding the relationship between columns 
+
+#Correlation Matrix
+corr_matrix = df.corr()
+plt.figure(figsize=(12,10))
+sns.heatmap(corr_matrix, annot= True, fmt= '.2f', cmap='coolwarm')
+plt.title('correlation Matrix')
+plt.show()
+
+
+# Scatter plot between chemical properties
+plt.scatter(df['Flavanoids'], df['OD'], color = 'red', label ='OD')
+plt.scatter(df['Flavanoids'], df['Phenols'], color= 'blue', label= 'Phenols')
+plt.scatter(df['Flavanoids'], df['Proanth'], color= 'yellow', label = 'Proanth')
+plt.xlabel('Flavanoids')
+plt.ylabel('OD Phenols Proanth')
+plt.title('The relationship of the highest correlation (above 0.60) between Flavanoids and OD, Phenols, and Proanth')
+plt.legend(loc ='upper left', bbox_to_anchor=(1,1))
+plt.show()
+
+#DATA PREPROCESSING
+#Handling missing values, training the data set 
+
+#remove null values
+df.dropna(inplace = True)
+
+#Removing duplicates
+df.drop_duplicates(inplace = True)
+
+#Removing empty cells
+df_new = df.dropna()
+
+print(df_new)
+
+# MODEL SELECTION
+#Ojective: To train a model given chemical properties of the wines, so that if we have new wine we can pridect it class accurately
+# Feature: Chemical Properties 
+#Target: Wine Class
+
+X = df_new.drop('Wine', axis=1)
+y = df_new['Wine']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+#Using K-NEAREST Neighbors CLassifier
+#Train the model
+knn_model = KNeighborsClassifier()
+knn_model.fit(X_train, y_train)
+
+#Make Predations
+knn_pred= knn_model.predict(X_test)
+y_proba = knn_model.predict_proba(X_test)[:, 1]
+knn_accuracy = accuracy_score(y_test, knn_pred)
+
+#CALCULATE MATRICES OF K-NEAREST NEIGHBORS
+knn_precision= precision_score(y_test, knn_pred, average= 'weighted')
+knn_recall= recall_score(y_test, knn_pred, average = 'weighted')
+knn_f1Score =f1_score(y_test, knn_pred, average= 'weighted')
+knn_conf_matrix = confusion_matrix(y_test, knn_pred)
+roc_auc = roc_auc_score(y_test, knn_model.predict_proba(X_test), multi_class='ovr')
+
+#Using Logistic Regression
+#Train the model
+#With up to 1000 iterations, the algorithm has more time to refine the model parameters and reach convergence.
+lr_model = LogisticRegression(max_iter=1000)
+lr_model.fit(X_train, y_train)
+
+
+#Make Predations
+lr_pred= lr_model.predict(X_test)
+y_proba = lr_model.predict_proba(X_test)[:, 1]
+lr_accuracy = accuracy_score(y_test, lr_pred)
+
+#CALCULATE MATRICES OF LOGISTIC REGRESSION
+lr_precision= precision_score(y_test, lr_pred, average= 'weighted')
+lr_recall= recall_score(y_test, lr_pred, average = 'weighted')
+lr_f1Score =f1_score(y_test, lr_pred, average= 'weighted')
+lr_conf_matrix = confusion_matrix(y_test, lr_pred)
+roc_auc = roc_auc_score(y_test, lr_model.predict_proba(X_test), multi_class='ovr')
+
+print('Logistic Regression: ')
+print(f'Accuracy: {lr_accuracy}')
+print(f'Precision: {lr_precision}')
+print(f'Recall: {lr_recall}')
+print(f'F1 Score: {lr_f1Score}')
+print(f"ROC-AUC: {roc_auc}")
+print('Confusion Matix: ')
+print(lr_conf_matrix)
+
+#For more robust validation, I used cross-validation to assess THE model’s performance on different subsets of the dataset. 
+#To ensure that the model does not overfit or overtrain so that the model can generalize new data.
+
+from sklearn.model_selection import cross_val_score
+
+#Cross Validation for linear regression 
+cv_scores = cross_val_score(lr_model, X, y, cv=5)  # 5-fold cross-validation
+print("\nCross-validation scores for Linear regression:")
+print(cv_scores)
+print(f"Mean CV score: {cv_scores.mean()}")
+
+train_score = lr_model.score(X_train, y_train)
+test_score = lr_model.score(X_test, y_test)
+
+print(f"Training set score: {train_score}")
+print(f"Test set score: {test_score}")
+
+#Cross Validation for K-Nearest Neighbors Classifier
+cv_scores = cross_val_score(knn_model, X, y, cv=5) 
+print("\nCross-validation scores for KNN :")
+print(cv_scores)
+print(f"Mean CV score: {cv_scores.mean()}")
+
+train_score = knn_model.score(X_train, y_train)
+test_score = knn_model.score(X_test, y_test)
+
+print(f"Training set score: {train_score}")
+print(f"Test set score: {test_score}")
+
+# Get feature importance
+# This provides insight into which chemical properties are most important for classifying the wine based on the model I trained.
+#access coefficients of the features 
+coefficients = lr_model.coef_[0]
+
+#Visualize important features
+#Larger absolute values of coefficients indicate more important features.
+features = X.columns
+
+# DataFrame for visualization
+features = X_train.columns  
+
+indices = np.argsort(np.abs(coefficients))[::-1]
+plt.figure(figsize=(10, 6))
+plt.title('Determining Features That Are Important using Logistic Regression')
+plt.bar(range(X_train.shape[1]), coefficients[indices], align='center', color= 'red')
+plt.xticks(range(X_train.shape[1]), features[indices], rotation=90)
+plt.xlim([-1, X_train.shape[1]])
+plt.show()
