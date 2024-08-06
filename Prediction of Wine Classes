@@ -62,14 +62,19 @@ y = df_new['Wine']
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# SCALING YOUR TRAINED DATA
+scaler = StandardScaler()
+X_trained_scaled = scaler.fit(X_train)
+X_test_scaled = scaler.transform(X_test)
+
 #Using K-NEAREST Neighbors CLassifier
 #Train the model
 knn_model = KNeighborsClassifier()
-knn_model.fit(X_train, y_train)
+knn_model.fit(X_train_scaled, y_train)
 
 #Make Predations
-knn_pred= knn_model.predict(X_test)
-y_proba = knn_model.predict_proba(X_test)[:, 1]
+knn_pred= knn_model.predict(X_test_scaled)
+y_proba = knn_model.predict_proba(X_test_scaled)[:, 1]
 knn_accuracy = accuracy_score(y_test, knn_pred)
 
 #CALCULATE MATRICES OF K-NEAREST NEIGHBORS
@@ -79,6 +84,22 @@ knn_f1Score =f1_score(y_test, knn_pred, average= 'weighted')
 knn_conf_matrix = confusion_matrix(y_test, knn_pred)
 roc_auc = roc_auc_score(y_test, knn_model.predict_proba(X_test), multi_class='ovr')
 
+print('K-Nearest Neighbors: ')
+print(f'Accuracy: {knn_accuracy}')
+print(f'Precision: {knn_precision}')
+print(f'Recall: {knn_recall}')
+print(f'F1 Score: {knn_f1Score}')
+print(f"ROC-AUC: {roc_auc}")
+print('Confusion Matix: ')
+print(knn_conf_matrix)
+
+# Predict a new wine class
+# Replace the following list with the chemical properties of the new wine
+new_wine = [[13.2, 2.36, 2.67, 18.6, 101, 2.8, 3.14, 0.34, 1.95, 6.1, 1.05, 3.33, 820]]
+new_wine_scaled = scaler.transform(new_wine)
+prediction = knn_model.predict(new_wine_scaled)
+print(f'Predicted class for KNN: {prediction[0]}')
+
 #Using Logistic Regression
 #Train the model
 #With up to 1000 iterations, the algorithm has more time to refine the model parameters and reach convergence.
@@ -87,8 +108,8 @@ lr_model.fit(X_train, y_train)
 
 
 #Make Predations
-lr_pred= lr_model.predict(X_test)
-y_proba = lr_model.predict_proba(X_test)[:, 1]
+lr_pred= lr_model.predict(X_test_scaled)
+y_proba = lr_model.predict_proba(X_test_scaled)[:, 1]
 lr_accuracy = accuracy_score(y_test, lr_pred)
 
 #CALCULATE MATRICES OF LOGISTIC REGRESSION
@@ -107,6 +128,14 @@ print(f"ROC-AUC: {roc_auc}")
 print('Confusion Matix: ')
 print(lr_conf_matrix)
 
+# Predict a new wine class
+# Replace the following list with the chemical properties of the new wine
+new_wine = [[13.2, 2.36, 2.67, 18.6, 101, 2.8, 3.14, 0.34, 1.95, 6.1, 1.05, 3.33, 500]]
+new_wine_scaled = scaler.transform(new_wine)
+prediction = lr_model.predict(new_wine_scaled)
+print(f'Predicted class using Logistic Regression: {prediction[0]}')
+
+
 #For more robust validation, I used cross-validation to assess THE model’s performance on different subsets of the dataset. 
 #To ensure that the model does not overfit or overtrain so that the model can generalize new data.
 
@@ -118,8 +147,8 @@ print("\nCross-validation scores for Linear regression:")
 print(cv_scores)
 print(f"Mean CV score: {cv_scores.mean()}")
 
-train_score = lr_model.score(X_train, y_train)
-test_score = lr_model.score(X_test, y_test)
+train_score = lr_model.score(X_train_scaled, y_train)
+test_score = lr_model.score(X_test_scaled, y_test)
 
 print(f"Training set score: {train_score}")
 print(f"Test set score: {test_score}")
@@ -130,8 +159,8 @@ print("\nCross-validation scores for KNN :")
 print(cv_scores)
 print(f"Mean CV score: {cv_scores.mean()}")
 
-train_score = knn_model.score(X_train, y_train)
-test_score = knn_model.score(X_test, y_test)
+train_score = knn_model.score(X_train_scaled, y_train)
+test_score = knn_model.score(X_test_scaled, y_test)
 
 print(f"Training set score: {train_score}")
 print(f"Test set score: {test_score}")
